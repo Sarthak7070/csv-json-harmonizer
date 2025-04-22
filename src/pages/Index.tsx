@@ -1,8 +1,10 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import BwrTable from "../components/BwrTable";
 import { Download, FileText } from "lucide-react";
+import ColumnSelector from "../components/ColumnSelector";
 
 const API_URL = "http://localhost:8000/read_bwr/";
 
@@ -10,11 +12,13 @@ const Index = () => {
   const [header, setHeader] = useState<string[] | null>(null);
   const [data, setData] = useState<Record<string, string>[] | null>(null);
   const [loading, setLoading] = useState(false);
+  const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
 
   const fetchData = async () => {
     setLoading(true);
     setHeader(null);
     setData(null);
+    setSelectedColumns([]);
     try {
       const resp = await fetch(API_URL);
       if (!resp.ok) {
@@ -33,6 +37,7 @@ const Index = () => {
       const json = await resp.json();
       setHeader(json.header);
       setData(json.data);
+      setSelectedColumns(json.header); // default: all columns selected
       toast({
         title: "Success",
         description: "Data loaded from server",
@@ -72,7 +77,23 @@ const Index = () => {
         <div className="mb-6 text-gray-600 text-center">
           Click &quot;Fetch Data&quot; to retrieve processed rows from your API.
         </div>
-        <BwrTable header={header} data={data} loading={loading} />
+        {/* Show dropdown if columns available */}
+        {header && header.length > 0 && (
+          <div className="mb-4">
+            <ColumnSelector
+              columns={header}
+              selected={selectedColumns}
+              onChange={setSelectedColumns}
+              disabled={loading}
+            />
+          </div>
+        )}
+        <BwrTable
+          header={header}
+          data={data}
+          loading={loading}
+          visibleHeader={selectedColumns.length > 0 ? selectedColumns : []}
+        />
       </div>
     </div>
   );

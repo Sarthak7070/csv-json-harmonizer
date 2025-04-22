@@ -6,9 +6,10 @@ interface BwrTableProps {
   header: string[] | null;
   data: Record<string, string>[] | null;
   loading?: boolean;
+  visibleHeader?: string[];
 }
 
-export default function BwrTable({ header, data, loading }: BwrTableProps) {
+export default function BwrTable({ header, data, loading, visibleHeader }: BwrTableProps) {
   if (loading) {
     return (
       <Card className="p-4 mt-6">
@@ -28,12 +29,15 @@ export default function BwrTable({ header, data, loading }: BwrTableProps) {
       </Card>
     );
   }
+
+  const columns = visibleHeader && visibleHeader.length > 0 ? visibleHeader : header;
+
   return (
     <Card className="p-0 mt-6 overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-slate-100">
           <tr>
-            {header.map((col) => (
+            {columns.map((col) => (
               <th
                 key={col}
                 className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider"
@@ -47,7 +51,7 @@ export default function BwrTable({ header, data, loading }: BwrTableProps) {
           {data.length === 0 ? (
             <tr>
               <td
-                colSpan={header.length}
+                colSpan={columns.length}
                 className="px-6 py-4 text-center text-gray-400"
               >
                 No results.
@@ -56,7 +60,7 @@ export default function BwrTable({ header, data, loading }: BwrTableProps) {
           ) : (
             data.map((row, idx) => (
               <tr key={idx}>
-                {header.map((col) => (
+                {columns.map((col) => (
                   <td key={col} className="px-6 py-3 whitespace-nowrap text-sm text-gray-800">
                     {row[col] ?? ""}
                   </td>

@@ -6,21 +6,24 @@ import BwrTable from "../components/BwrTable";
 import { Download, FileText } from "lucide-react";
 import ColumnSelector from "../components/ColumnSelector";
 
-const API_URL = "http://localhost:8000/read_bwr/";
+const HEADER_URL = "http://localhost:8000/read_bwr/header";
+const DATA_URL = "http://localhost:8000/read_bwr/data";
 
 const Index = () => {
   const [header, setHeader] = useState<string[] | null>(null);
   const [data, setData] = useState<Record<string, string>[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
+  const [loadingData, setLoadingData] = useState(false);
 
-  const fetchData = async () => {
+  // Fetch only the header
+  const fetchHeader = async () => {
     setLoading(true);
     setHeader(null);
     setData(null);
     setSelectedColumns([]);
     try {
-      const resp = await fetch(API_URL);
+      const resp = await fetch(HEADER_URL);
       if (!resp.ok) {
         const text = await resp.text();
         toast({
@@ -36,8 +39,52 @@ const Index = () => {
       }
       const json = await resp.json();
       setHeader(json.header);
+      setSelectedColumns([]); // No columns selected at start
+      toast({
+        title: "Success",
+        description: "Header loaded from server",
+      });
+    } catch (e: any) {
+      toast({
+        title: "Network error",
+        description: e.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch table data for selected columns
+  const fetchDataForColumns = async () => {
+    if (!selectedColumns.length) {
+      toast({
+        title: "Select columns",
+        description: "Please select at least one column",
+        variant: "destructive",
+      });
+      return;
+    }
+    setLoadingData(true);
+    setData(null);
+    try {
+      const resp = await fetch(DATA_URL, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ columns: selectedColumns }),
+      });
+      if (!resp.ok) {
+        const text = await resp.text();
+        toast({
+          title: `Fetch error`,
+          description: text || "Unknown server error.",
+          variant: "destructive",
+        });
+        setLoadingData(false);
+        return;
+      }
+      const json = await resp.json();
       setData(json.data);
-      setSelectedColumns(json.header); // default: all columns selected
       toast({
         title: "Success",
         description: "Data loaded from server",
@@ -49,7 +96,7 @@ const Index = () => {
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setLoadingData(false);
     }
   };
 
@@ -67,31 +114,39 @@ const Index = () => {
             size="lg"
             variant="default"
             className="gap-2 bg-gradient-to-r from-violet-500 via-purple-400 to-blue-400 hover:from-violet-600 hover:to-blue-500 shadow"
-            onClick={fetchData}
+            onClick={fetchHeader}
             disabled={loading}
           >
             <Download className="w-5 h-5" />
-            {loading ? "Loading..." : "Fetch Data"}
+            {loading ? "Loading..." : "Fetch Header"}
           </Button>
         </div>
         <div className="mb-6 text-gray-600 text-center">
-          Click &quot;Fetch Data&quot; to retrieve processed rows from your API.
+          Click "Fetch Header" to read only the column names. Then select columns and load data.
         </div>
-        {/* Show dropdown if columns available */}
+        {/* Show dropdown if columns (header) available */}
         {header && header.length > 0 && (
-          <div className="mb-4">
+          <div className="mb-4 flex flex-wrap gap-4 items-center justify-between">
             <ColumnSelector
               columns={header}
               selected={selectedColumns}
               onChange={setSelectedColumns}
-              disabled={loading}
+              disabled={loading || loadingData}
             />
+            <Button
+              variant="outline"
+              className="ml-2"
+              onClick={fetchDataForColumns}
+              disabled={loading || loadingData || selectedColumns.length === 0}
+            >
+              {loadingData ? "Loading data..." : "Load Data"}
+            </Button>
           </div>
         )}
         <BwrTable
           header={header}
           data={data}
-          loading={loading}
+          loading={loading || loadingData}
           visibleHeader={selectedColumns.length > 0 ? selectedColumns : []}
         />
       </div>
@@ -100,3 +155,4 @@ const Index = () => {
 };
 
 export default Index;
+

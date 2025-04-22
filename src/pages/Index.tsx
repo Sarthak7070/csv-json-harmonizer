@@ -1,18 +1,16 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import BwrTable from "../components/BwrTable";
 import { Download, FileText } from "lucide-react";
 
-const API_URL = "/read_bwr/";
+const API_URL = "http://localhost:8000/read_bwr/";
 
 const Index = () => {
   const [header, setHeader] = useState<string[] | null>(null);
   const [data, setData] = useState<Record<string, string>[] | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Optionally: error state, but we'll mostly use toast
   const fetchData = async () => {
     setLoading(true);
     setHeader(null);

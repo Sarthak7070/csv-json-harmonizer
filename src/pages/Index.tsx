@@ -38,13 +38,29 @@ const Index = () => {
         return;
       }
       const json = await resp.json();
-      setHeader(json.header);
+      console.log("Received header data:", json);
+      
+      // Extract column headers from the response
+      // If json has a 'columns' property, use its keys as headers
+      let extractedHeaders: string[] = [];
+      if (json.columns) {
+        extractedHeaders = Object.keys(json.columns);
+      } else if (json.header) {
+        // Fallback to original format
+        extractedHeaders = json.header;
+      } else {
+        // If neither format is detected, try to use the entire object as headers
+        extractedHeaders = Object.keys(json);
+      }
+      
+      setHeader(extractedHeaders);
       setSelectedColumns([]); // No columns selected at start
       toast({
         title: "Success",
-        description: "Header loaded from server",
+        description: `${extractedHeaders.length} columns loaded from server`,
       });
     } catch (e: any) {
+      console.error("Error fetching headers:", e);
       toast({
         title: "Network error",
         description: e.message,
@@ -68,6 +84,7 @@ const Index = () => {
     setLoadingData(true);
     setData(null);
     try {
+      console.log("Fetching data for columns:", selectedColumns);
       const resp = await fetch(DATA_URL, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
@@ -84,12 +101,24 @@ const Index = () => {
         return;
       }
       const json = await resp.json();
-      setData(json.data);
+      console.log("Received data:", json);
+      
+      // Handle different response formats
+      let extractedData = [];
+      if (json.data) {
+        extractedData = json.data;
+      } else {
+        // If no data property, try to use the entire response
+        extractedData = Array.isArray(json) ? json : [json];
+      }
+      
+      setData(extractedData);
       toast({
         title: "Success",
-        description: "Data loaded from server",
+        description: `${extractedData.length} rows loaded from server`,
       });
     } catch (e: any) {
+      console.error("Error fetching data:", e);
       toast({
         title: "Network error",
         description: e.message,
@@ -155,4 +184,3 @@ const Index = () => {
 };
 
 export default Index;
-

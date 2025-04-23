@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 
@@ -99,11 +99,16 @@ export default function CalculationSection({
 
       <Card className="p-4">
         <div className="text-sm font-medium mb-2">Results:</div>
-        <div className="space-y-2">
+        <div className="space-y-2 mt-4">
+          {/* Table header row for visual alignment, matching the height of the table headers */}
+          <div className="h-12 flex items-center justify-center font-semibold text-sm text-gray-700 bg-slate-100 rounded">
+            Calculation
+          </div>
+          
           {calculateResults().map((result, index) => (
             <div
               key={index}
-              className="p-2 bg-gray-50 rounded text-center"
+              className="h-[41px] flex items-center justify-center bg-gray-50 rounded text-sm"
             >
               {result}
             </div>

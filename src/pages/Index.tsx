@@ -6,7 +6,7 @@ import { Download, FileText } from "lucide-react";
 import ColumnSelector from "../components/ColumnSelector";
 import PivotSelector from "../components/PivotSelector";
 import { aggregateData } from "../utils/dataAggregation";
-import CalculationSection from "../components/CalculationSection";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const HEADER_URL_1 = "http://localhost:8000/read_bwr/header";
 const DATA_URL_1 = "http://localhost:8000/read_bwr/data";
@@ -29,6 +29,10 @@ const Index = () => {
 
   const [pivotColumn1, setPivotColumn1] = useState<string>("");
   const [pivotColumn2, setPivotColumn2] = useState<string>("");
+
+  const [selectedCalculationColumn1, setSelectedCalculationColumn1] = useState<string>("");
+  const [selectedCalculationColumn2, setSelectedCalculationColumn2] = useState<string>("");
+  const [operation, setOperation] = useState<string>("+");
 
   const fetchHeader1 = async () => {
     setLoading1(true);
@@ -258,12 +262,46 @@ const Index = () => {
     }
   };
 
+  const calculateResults = () => {
+    if (!data1 || !data2 || !selectedCalculationColumn1 || !selectedCalculationColumn2) return [];
+
+    const maxLength = Math.max(data1.length, data2.length);
+    const results = [];
+
+    for (let i = 0; i < maxLength; i++) {
+      const value1 = parseFloat(data1[i]?.[selectedCalculationColumn1] || "0");
+      const value2 = parseFloat(data2[i]?.[selectedCalculationColumn2] || "0");
+      let result = 0;
+
+      switch (operation) {
+        case "+":
+          result = value1 + value2;
+          break;
+        case "-":
+          result = value1 - value2;
+          break;
+        case "*":
+          result = value1 * value2;
+          break;
+        case "/":
+          result = value2 !== 0 ? value1 / value2 : NaN;
+          break;
+        default:
+          result = 0;
+      }
+
+      results.push(isNaN(result) ? "Error" : result.toFixed(2));
+    }
+
+    return results;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#e5deff] via-[#d3e4fd] to-white py-16 px-4 flex flex-col items-center relative">
-      <div className="mx-auto w-full max-w-[1800px]">
-        <div className="flex flex-row justify-between items-start gap-4 w-full">
-          <div className="flex-1 min-w-[500px]">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-6 sm:gap-2 mb-8">
+      <div className="mx-auto w-full max-w-[1800px] space-y-8">
+        <div className="flex flex-row justify-between items-start gap-4 w-full mb-8">
+          <div className="flex-1">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-6 sm:gap-2">
               <div className="flex items-center space-x-3">
                 <FileText size={32} className="text-violet-800" />
                 <h1 className="text-3xl font-extrabold text-gray-800 tracking-tight">
@@ -281,53 +319,10 @@ const Index = () => {
                 {loading1 ? "Loading..." : "Fetch Header"}
               </Button>
             </div>
-            <div className="mb-6 text-gray-600 text-center">
-              Click "Fetch Header" to read only the column names for File 1. Then select columns and load data.
-            </div>
-            {header1 && header1.length > 0 && (
-              <div className="mb-4 space-y-4">
-                <div className="flex flex-wrap gap-4 items-center justify-between">
-                  <ColumnSelector
-                    columns={header1}
-                    selected={selectedColumns1}
-                    onChange={setSelectedColumns1}
-                    disabled={loading1 || loadingData1}
-                  />
-                </div>
-                <div className="flex flex-wrap gap-4 items-center justify-between">
-                  <PivotSelector
-                    columns={header1}
-                    selectedPivot={pivotColumn1}
-                    onChange={setPivotColumn1}
-                    disabled={loading1 || loadingData1}
-                  />
-                  <Button
-                    variant="outline"
-                    onClick={fetchDataForColumns1}
-                    disabled={loading1 || loadingData1 || selectedColumns1.length === 0}
-                  >
-                    {loadingData1 ? "Loading data..." : "Load Data"}
-                  </Button>
-                </div>
-              </div>
-            )}
-            <BwrTable
-              header={header1}
-              data={data1}
-              loading={loading1 || loadingData1}
-              visibleHeader={selectedColumns1.length > 0 ? selectedColumns1 : []}
-            />
           </div>
 
-          <CalculationSection
-            header1={header1}
-            header2={header2}
-            data1={data1}
-            data2={data2}
-          />
-
-          <div className="flex-1 min-w-[500px]">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-6 sm:gap-2 mb-8">
+          <div className="flex-1 text-right">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-6 sm:gap-2">
               <div className="flex items-center space-x-3">
                 <FileText size={32} className="text-teal-700" />
                 <h1 className="text-3xl font-extrabold text-gray-800 tracking-tight">
@@ -345,19 +340,47 @@ const Index = () => {
                 {loading2 ? "Loading..." : "Fetch Header"}
               </Button>
             </div>
-            <div className="mb-6 text-gray-600 text-center">
-              Click "Fetch Header" to read only the column names for File 2. Then select columns and load data.
-            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-8">
+          <div>
+            {header1 && header1.length > 0 && (
+              <div className="mb-4 space-y-4">
+                <ColumnSelector
+                  columns={header1}
+                  selected={selectedColumns1}
+                  onChange={setSelectedColumns1}
+                  disabled={loading1 || loadingData1}
+                />
+                <div className="flex flex-wrap gap-4 items-center justify-between">
+                  <PivotSelector
+                    columns={header1}
+                    selectedPivot={pivotColumn1}
+                    onChange={setPivotColumn1}
+                    disabled={loading1 || loadingData1}
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={fetchDataForColumns1}
+                    disabled={loading1 || loadingData1 || selectedColumns1.length === 0}
+                  >
+                    {loadingData1 ? "Loading data..." : "Load Data"}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div>
             {header2 && header2.length > 0 && (
               <div className="mb-4 space-y-4">
-                <div className="flex flex-wrap gap-4 items-center justify-between">
-                  <ColumnSelector
-                    columns={header2}
-                    selected={selectedColumns2}
-                    onChange={setSelectedColumns2}
-                    disabled={loading2 || loadingData2}
-                  />
-                </div>
+                <ColumnSelector
+                  columns={header2}
+                  selected={selectedColumns2}
+                  onChange={setSelectedColumns2}
+                  disabled={loading2 || loadingData2}
+                />
                 <div className="flex flex-wrap gap-4 items-center justify-between">
                   <PivotSelector
                     columns={header2}
@@ -375,14 +398,64 @@ const Index = () => {
                 </div>
               </div>
             )}
-            <BwrTable
-              header={header2}
-              data={data2}
-              loading={loading2 || loadingData2}
-              visibleHeader={selectedColumns2.length > 0 ? selectedColumns2 : []}
-            />
           </div>
         </div>
+
+        {header1 && header2 && (
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <Select value={selectedCalculationColumn1} onValueChange={setSelectedCalculationColumn1}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Select column from File 1" />
+              </SelectTrigger>
+              <SelectContent>
+                {header1?.map((column) => (
+                  <SelectItem key={column} value={column}>
+                    {column}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={operation} onValueChange={setOperation}>
+              <SelectTrigger className="w-[100px]">
+                <SelectValue placeholder="Operation" />
+              </SelectTrigger>
+              <SelectContent>
+                {["+", "-", "*", "/"].map((op) => (
+                  <SelectItem key={op} value={op}>
+                    {op}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedCalculationColumn2} onValueChange={setSelectedCalculationColumn2}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Select column from File 2" />
+              </SelectTrigger>
+              <SelectContent>
+                {header2?.map((column) => (
+                  <SelectItem key={column} value={column}>
+                    {column}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        <BwrTable
+          header1={header1}
+          header2={header2}
+          data1={data1}
+          data2={data2}
+          visibleHeader1={selectedColumns1}
+          visibleHeader2={selectedColumns2}
+          calculationResults={calculateResults()}
+          calculationOperation={operation}
+          selectedColumn1={selectedCalculationColumn1}
+          selectedColumn2={selectedCalculationColumn2}
+        />
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
@@ -259,9 +260,11 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#e5deff] via-[#d3e4fd] to-white py-16 px-4 flex flex-col items-center relative">
-      <div className="mx-auto max-w-7xl w-full">
-        <div className="flex flex-wrap justify-center gap-12 w-full">
-          <div className="w-full lg:w-1/2 min-w-[300px] max-w-[600px]">
+      <div className="mx-auto w-full max-w-[1800px]">
+        {/* Changed to flex-row and adjusted gap */}
+        <div className="flex flex-row justify-between gap-4 w-full">
+          {/* Left section - File 1 */}
+          <div className="flex-1 min-w-[600px]">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-6 sm:gap-2 mb-8">
               <div className="flex items-center space-x-3">
                 <FileText size={32} className="text-violet-800" />
@@ -318,7 +321,8 @@ const Index = () => {
             />
           </div>
 
-          <div className="w-full lg:w-1/2 min-w-[300px] max-w-[600px]">
+          {/* Right section - File 2 */}
+          <div className="flex-1 min-w-[600px]">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-6 sm:gap-2 mb-8">
               <div className="flex items-center space-x-3">
                 <FileText size={32} className="text-teal-700" />

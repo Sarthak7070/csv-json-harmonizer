@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
@@ -7,6 +8,7 @@ import ColumnSelector from "../components/ColumnSelector";
 import PivotSelector from "../components/PivotSelector";
 import { aggregateData } from "../utils/dataAggregation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card } from "@/components/ui/card";
 
 const HEADER_URL_1 = "http://localhost:8000/read_bwr/header";
 const DATA_URL_1 = "http://localhost:8000/read_bwr/data";
@@ -154,7 +156,8 @@ const Index = () => {
       return;
     }
     setLoadingData1(true);
-    setData1(null);
+    
+    // Important: Don't reset data1 here to fix the loading issue
     try {
       console.log("Fetching data for columns (File 1):", selectedColumns1);
       const resp = await fetch(DATA_URL_1, {
@@ -213,7 +216,8 @@ const Index = () => {
       return;
     }
     setLoadingData2(true);
-    setData2(null);
+    
+    // Important: Don't reset data2 here to fix the loading issue
     try {
       console.log("Fetching data for columns (File 2):", selectedColumns2);
       const resp = await fetch(DATA_URL_2, {
@@ -296,12 +300,18 @@ const Index = () => {
     return results;
   };
 
+  // Initialize default data for File 2 if not loaded
+  const dataForDisplay1 = data1 || [];
+  const dataForDisplay2 = data2 || [];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#e5deff] via-[#d3e4fd] to-white py-16 px-4 flex flex-col items-center relative">
       <div className="mx-auto w-full max-w-[1800px] space-y-8">
-        <div className="flex flex-row justify-between items-start gap-4 w-full mb-8">
-          <div className="flex-1">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-6 sm:gap-2">
+        {/* File Headers Section */}
+        <div className="grid grid-cols-2 gap-8">
+          {/* BWR File Section */}
+          <Card className="p-6 bg-blue-50/50 border-blue-200 shadow">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-6 sm:gap-2 mb-6">
               <div className="flex items-center space-x-3">
                 <FileText size={32} className="text-violet-800" />
                 <h1 className="text-3xl font-extrabold text-gray-800 tracking-tight">
@@ -319,34 +329,9 @@ const Index = () => {
                 {loading1 ? "Loading..." : "Fetch Header"}
               </Button>
             </div>
-          </div>
-
-          <div className="flex-1 text-right">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-6 sm:gap-2">
-              <div className="flex items-center space-x-3">
-                <FileText size={32} className="text-teal-700" />
-                <h1 className="text-3xl font-extrabold text-gray-800 tracking-tight">
-                  ADSR file data
-                </h1>
-              </div>
-              <Button
-                size="lg"
-                variant="default"
-                className="gap-2 bg-gradient-to-r from-violet-500 via-purple-400 to-blue-400 hover:from-violet-600 hover:to-blue-500 shadow"
-                onClick={fetchHeader2}
-                disabled={loading2}
-              >
-                <Download className="w-5 h-5" />
-                {loading2 ? "Loading..." : "Fetch Header"}
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-8">
-          <div>
+            
             {header1 && header1.length > 0 && (
-              <div className="mb-4 space-y-4">
+              <div className="space-y-4">
                 <ColumnSelector
                   columns={header1}
                   selected={selectedColumns1}
@@ -370,11 +355,31 @@ const Index = () => {
                 </div>
               </div>
             )}
-          </div>
+          </Card>
 
-          <div>
+          {/* ADSR File Section */}
+          <Card className="p-6 bg-green-50/50 border-green-200 shadow">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-6 sm:gap-2 mb-6">
+              <div className="flex items-center space-x-3">
+                <FileText size={32} className="text-teal-700" />
+                <h1 className="text-3xl font-extrabold text-gray-800 tracking-tight">
+                  ADSR file data
+                </h1>
+              </div>
+              <Button
+                size="lg"
+                variant="default"
+                className="gap-2 bg-gradient-to-r from-teal-500 via-green-400 to-emerald-400 hover:from-teal-600 hover:to-emerald-500 shadow"
+                onClick={fetchHeader2}
+                disabled={loading2}
+              >
+                <Download className="w-5 h-5" />
+                {loading2 ? "Loading..." : "Fetch Header"}
+              </Button>
+            </div>
+            
             {header2 && header2.length > 0 && (
-              <div className="mb-4 space-y-4">
+              <div className="space-y-4">
                 <ColumnSelector
                   columns={header2}
                   selected={selectedColumns2}
@@ -398,57 +403,68 @@ const Index = () => {
                 </div>
               </div>
             )}
-          </div>
+          </Card>
         </div>
 
+        {/* Calculation Controls Section */}
         {header1 && header2 && (
-          <div className="flex items-center justify-center gap-4 mb-4">
-            <Select value={selectedCalculationColumn1} onValueChange={setSelectedCalculationColumn1}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Select column from File 1" />
-              </SelectTrigger>
-              <SelectContent>
-                {header1?.map((column) => (
-                  <SelectItem key={column} value={column}>
-                    {column}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <Card className="p-4 bg-violet-50 border-violet-200 shadow">
+            <h2 className="text-lg font-bold mb-4 text-center">Data Calculations</h2>
+            <div className="flex items-center justify-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">BWR Column:</span>
+                <Select value={selectedCalculationColumn1} onValueChange={setSelectedCalculationColumn1}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Select column from File 1" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {header1?.map((column) => (
+                      <SelectItem key={column} value={column}>
+                        {column}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <Select value={operation} onValueChange={setOperation}>
-              <SelectTrigger className="w-[100px]">
-                <SelectValue placeholder="Operation" />
-              </SelectTrigger>
-              <SelectContent>
-                {["+", "-", "*", "/"].map((op) => (
-                  <SelectItem key={op} value={op}>
-                    {op}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <Select value={operation} onValueChange={setOperation}>
+                <SelectTrigger className="w-[100px]">
+                  <SelectValue placeholder="Operation" />
+                </SelectTrigger>
+                <SelectContent>
+                  {["+", "-", "*", "/"].map((op) => (
+                    <SelectItem key={op} value={op}>
+                      {op}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-            <Select value={selectedCalculationColumn2} onValueChange={setSelectedCalculationColumn2}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Select column from File 2" />
-              </SelectTrigger>
-              <SelectContent>
-                {header2?.map((column) => (
-                  <SelectItem key={column} value={column}>
-                    {column}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">ADSR Column:</span>
+                <Select value={selectedCalculationColumn2} onValueChange={setSelectedCalculationColumn2}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Select column from File 2" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {header2?.map((column) => (
+                      <SelectItem key={column} value={column}>
+                        {column}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </Card>
         )}
 
+        {/* Combined Table Display */}
         <BwrTable
           header1={header1}
           header2={header2}
-          data1={data1}
-          data2={data2}
+          data1={dataForDisplay1}
+          data2={dataForDisplay2}
           visibleHeader1={selectedColumns1}
           visibleHeader2={selectedColumns2}
           calculationResults={calculateResults()}

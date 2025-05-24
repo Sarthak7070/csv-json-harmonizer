@@ -1,20 +1,24 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import BwrTable from "../components/BwrTable";
-import { Download, FileText } from "lucide-react";
+import { Download, FileText, Upload, ArrowUp } from "lucide-react";
 import ColumnSelector from "../components/ColumnSelector";
 import PivotSelector from "../components/PivotSelector";
 import { aggregateData } from "../utils/dataAggregation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 
 const HEADER_URL_1 = "http://localhost:8000/read_bwr/header";
 const DATA_URL_1 = "http://localhost:8000/read_bwr/data";
 
 const HEADER_URL_2 = "http://localhost:8000/read_adsr/header";
 const DATA_URL_2 = "http://localhost:8000/read_adsr/data";
+
+const UPLOAD_BWR_URL = "http://localhost:8000/upload_bwr";
+const UPLOAD_ADSR_URL = "http://localhost:8000/upload_adsr";
 
 const Index = () => {
   const [header1, setHeader1] = useState<string[] | null>(null);
@@ -35,6 +39,183 @@ const Index = () => {
   const [selectedCalculationColumn1, setSelectedCalculationColumn1] = useState<string>("");
   const [selectedCalculationColumn2, setSelectedCalculationColumn2] = useState<string>("");
   const [operation, setOperation] = useState<string>("+");
+
+  const [bwrFile, setBwrFile] = useState<File | null>(null);
+  const [adsrFile, setAdsrFile] = useState<File | null>(null);
+  const [uploadingBwr, setUploadingBwr] = useState(false);
+  const [uploadingAdsr, setUploadingAdsr] = useState(false);
+  const [uploadProgressBwr, setUploadProgressBwr] = useState(0);
+  const [uploadProgressAdsr, setUploadProgressAdsr] = useState(0);
+
+  const handleBwrFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setBwrFile(e.target.files[0]);
+    }
+  };
+
+  const handleAdsrFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setAdsrFile(e.target.files[0]);
+    }
+  };
+
+  const uploadBwrFile = () => {
+    if (!bwrFile) {
+      toast({
+        title: "No file selected",
+        description: "Please select a BWR file to upload.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check file type
+    const allowedTypes = ['.csv', '.txt', '.xls', '.xlsx'];
+    const fileExtension = bwrFile.name.substring(bwrFile.name.lastIndexOf('.')).toLowerCase();
+    
+    if (!allowedTypes.includes(fileExtension)) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select a CSV, TXT, XLS, or XLSX file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', bwrFile);
+    
+    setUploadingBwr(true);
+    setUploadProgressBwr(0);
+    
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', UPLOAD_BWR_URL);
+    
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        const progress = Math.round((e.loaded / e.total) * 100);
+        setUploadProgressBwr(progress);
+      }
+    };
+    
+    xhr.onload = () => {
+      setUploadingBwr(false);
+      
+      if (xhr.status === 200) {
+        try {
+          const response = JSON.parse(xhr.responseText);
+          toast({
+            title: "Success",
+            description: response.message || "BWR file uploaded successfully.",
+          });
+          // Auto fetch headers after successful upload
+          fetchHeader1();
+        } catch (error) {
+          toast({
+            title: "Error",
+            description: "Error processing server response.",
+            variant: "destructive",
+          });
+        }
+      } else {
+        toast({
+          title: "Upload failed",
+          description: "Failed to upload BWR file. Please try again.",
+          variant: "destructive",
+        });
+      }
+    };
+    
+    xhr.onerror = () => {
+      setUploadingBwr(false);
+      toast({
+        title: "Connection error",
+        description: "Network error occurred. Please check your connection.",
+        variant: "destructive",
+      });
+    };
+    
+    xhr.send(formData);
+  };
+
+  const uploadAdsrFile = () => {
+    if (!adsrFile) {
+      toast({
+        title: "No file selected",
+        description: "Please select an ADSR file to upload.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check file type
+    const allowedTypes = ['.csv', '.txt', '.xls', '.xlsx'];
+    const fileExtension = adsrFile.name.substring(adsrFile.name.lastIndexOf('.')).toLowerCase();
+    
+    if (!allowedTypes.includes(fileExtension)) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select a CSV, TXT, XLS, or XLSX file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', adsrFile);
+    
+    setUploadingAdsr(true);
+    setUploadProgressAdsr(0);
+    
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', UPLOAD_ADSR_URL);
+    
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        const progress = Math.round((e.loaded / e.total) * 100);
+        setUploadProgressAdsr(progress);
+      }
+    };
+    
+    xhr.onload = () => {
+      setUploadingAdsr(false);
+      
+      if (xhr.status === 200) {
+        try {
+          const response = JSON.parse(xhr.responseText);
+          toast({
+            title: "Success",
+            description: response.message || "ADSR file uploaded successfully.",
+          });
+          // Auto fetch headers after successful upload
+          fetchHeader2();
+        } catch (error) {
+          toast({
+            title: "Error",
+            description: "Error processing server response.",
+            variant: "destructive",
+          });
+        }
+      } else {
+        toast({
+          title: "Upload failed",
+          description: "Failed to upload ADSR file. Please try again.",
+          variant: "destructive",
+        });
+      }
+    };
+    
+    xhr.onerror = () => {
+      setUploadingAdsr(false);
+      toast({
+        title: "Connection error",
+        description: "Network error occurred. Please check your connection.",
+        variant: "destructive",
+      });
+    };
+    
+    xhr.send(formData);
+  };
 
   const fetchHeader1 = async () => {
     setLoading1(true);
@@ -318,12 +499,54 @@ const Index = () => {
                   BWR file data
                 </h1>
               </div>
+
+              {/* New file upload section */}
+              <div className="flex flex-col w-full space-y-2 sm:w-auto">
+                <div className="flex items-center gap-2">
+                  <Input 
+                    id="bwr-file" 
+                    type="file" 
+                    accept=".csv,.txt,.xls,.xlsx"
+                    onChange={handleBwrFileChange}
+                    disabled={uploadingBwr}
+                    className="max-w-xs text-sm"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={uploadBwrFile}
+                    disabled={!bwrFile || uploadingBwr}
+                    className="whitespace-nowrap"
+                  >
+                    <ArrowUp className="w-4 h-4 mr-1" />
+                    Upload
+                  </Button>
+                </div>
+                
+                {/* Display selected file name */}
+                {bwrFile && (
+                  <div className="text-sm text-gray-600 font-medium">
+                    {bwrFile.name} ({Math.round(bwrFile.size / 1024)} KB)
+                  </div>
+                )}
+                
+                {/* Upload progress */}
+                {uploadingBwr && (
+                  <div className="w-full">
+                    <Progress value={uploadProgressBwr} className="h-2" />
+                    <div className="text-xs text-right mt-1">{uploadProgressBwr}%</div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Fetch header button */}
+            <div className="flex justify-end mb-4">
               <Button
-                size="lg"
                 variant="default"
                 className="gap-2 bg-gradient-to-r from-violet-500 via-purple-400 to-blue-400 hover:from-violet-600 hover:to-blue-500 shadow"
                 onClick={fetchHeader1}
-                disabled={loading1}
+                disabled={loading1 || uploadingBwr}
               >
                 <Download className="w-5 h-5" />
                 {loading1 ? "Loading..." : "Fetch Header"}
@@ -366,12 +589,54 @@ const Index = () => {
                   ADSR file data
                 </h1>
               </div>
+
+              {/* New file upload section */}
+              <div className="flex flex-col w-full space-y-2 sm:w-auto">
+                <div className="flex items-center gap-2">
+                  <Input 
+                    id="adsr-file" 
+                    type="file" 
+                    accept=".csv,.txt,.xls,.xlsx"
+                    onChange={handleAdsrFileChange}
+                    disabled={uploadingAdsr}
+                    className="max-w-xs text-sm"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={uploadAdsrFile}
+                    disabled={!adsrFile || uploadingAdsr}
+                    className="whitespace-nowrap"
+                  >
+                    <ArrowUp className="w-4 h-4 mr-1" />
+                    Upload
+                  </Button>
+                </div>
+                
+                {/* Display selected file name */}
+                {adsrFile && (
+                  <div className="text-sm text-gray-600 font-medium">
+                    {adsrFile.name} ({Math.round(adsrFile.size / 1024)} KB)
+                  </div>
+                )}
+                
+                {/* Upload progress */}
+                {uploadingAdsr && (
+                  <div className="w-full">
+                    <Progress value={uploadProgressAdsr} className="h-2" />
+                    <div className="text-xs text-right mt-1">{uploadProgressAdsr}%</div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Fetch header button */}
+            <div className="flex justify-end mb-4">
               <Button
-                size="lg"
                 variant="default"
                 className="gap-2 bg-gradient-to-r from-teal-500 via-green-400 to-emerald-400 hover:from-teal-600 hover:to-emerald-500 shadow"
                 onClick={fetchHeader2}
-                disabled={loading2}
+                disabled={loading2 || uploadingAdsr}
               >
                 <Download className="w-5 h-5" />
                 {loading2 ? "Loading..." : "Fetch Header"}
